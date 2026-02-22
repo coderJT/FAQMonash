@@ -8,30 +8,22 @@ from clean_scraped_result import process_data
 from build_index import indexing
 from query_rag import evaluate  # This function should take user query as input
 
-# Ensure async setup steps only run once
-@st.cache_resource
-def run_setup_pipeline():
-    asyncio.run(scrape_url())
-    asyncio.run(scrape_pages())
-    process_data()
-    indexing()
-    pass
-
 # UI
-st.set_page_config(page_title="Monash Student Chatbot", layout="centered")
+st.set_page_config(page_title="Monash Student Chatbot", layout="wide", page_icon="🎓")
+
+with st.sidebar:
+    st.header("💡 Suggested Questions")
+    if st.button("What is the GPA formula?"):
+        st.session_state.suggested_q = "What is the GPA formula?"
+    if st.button("How to get a physical certificate?"):
+        st.session_state.suggested_q = "How do I receive a physical degree certificate after graduating?"
+    if st.button("How do I select class slots?"):
+        st.session_state.suggested_q = "How do I select my class timetable for the upcoming semester?"
+
 st.title("🎓 Monash Student Chatbot")
 st.markdown("""
 Ask me anything about Monash University policies!  
-You can try questions like:
-
-- **"What is my GPA if I received grades: 4 HDs, 2 Ds, and 2 Cs at Year 1 Semester 2, assuming each unit has 4 credit points?"**  
-- **"I have graduated and want to receive a physical certificate. What steps should I take?"**  
-- **"How can I select my preferred class slots for next semester?"**
 """)
-
-# Run setup once
-with st.spinner("Setting up backend (first time only)..."):
-    run_setup_pipeline()
 
 # Session state to track conversation history
 if "chat_history" not in st.session_state:
@@ -45,6 +37,10 @@ for message in st.session_state.chat_history:
 # Handle input
 user_input = st.chat_input("Type your question here...")
 
+if "suggested_q" in st.session_state and st.session_state.suggested_q:
+    user_input = st.session_state.suggested_q
+    st.session_state.suggested_q = None
+
 if user_input:
     with st.spinner("Thinking..."):
         st.session_state.chat_history.append({"role": "user", "text": user_input})
@@ -53,6 +49,6 @@ if user_input:
             st.markdown(user_input)
 
         with st.chat_message("assistant"):
-            response = st.write_stream(evaluate(user_input)) 
+            response = st.write_stream(evaluate(user_input, st.session_state.chat_history[:-1])) 
 
         st.session_state.chat_history.append({"role": "bot", "text": response})
