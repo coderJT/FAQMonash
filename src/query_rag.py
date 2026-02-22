@@ -80,6 +80,15 @@ def evaluate(question: str, chat_history: list = None):
     bm25_scores = bm25.get_scores(tokenized_query)
     bm25_ranks = np.argsort(bm25_scores)[::-1][:5].tolist()
 
+    # Load URL mappings from links.csv
+    url_mapping = {}
+    if os.path.exists("data/bronze/links.csv"):
+        import csv
+        with open("data/bronze/links.csv", "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                url_mapping[row["Title"]] = row["URL"]
+
     # 4. Reciprocal Rank Fusion
     fused_indices = reciprocal_rank_fusion(faiss_ranks, bm25_ranks)
     top_k_indices = fused_indices[:4] # Take top 4 after fusion
@@ -88,10 +97,16 @@ def evaluate(question: str, chat_history: list = None):
     sources = []
     for idx in top_k_indices:
         chunk_text = metadata[idx]["text"]
-        source = metadata[idx]["source"]
-        top_chunks.append(f"[Source: {source}]\n{chunk_text}")
-        if source not in sources:
-            sources.append(source)
+        source_file = metadata[idx]["source"]
+        
+        # Convert filename back to title to get URL
+        title = source_file.replace(".clean.txt", "")
+        # Fall back to title if URL not found
+        source_url = url_mapping.get(title, title) 
+        
+        top_chunks.append(f"[Source: {source_url}]\n{chunk_text}")
+        if source_url not in sources:
+            sources.append(source_url)
 
     # Prepare prompt
     context = "\n\n---\n\n".join(top_chunks)
@@ -101,7 +116,8 @@ def evaluate(question: str, chat_history: list = None):
     You are a helpful assistant answering student admin questions at Monash University.
 
     Answer the following question using ONLY the context provided below. 
-    Make sure to explicitly cite the source filenames at the end of your response, e.g., "Sources: course-dates.clean.txt, fees.clean.txt".
+    Make sure to explicitly cite the source URLs at the end of your response, e.g., "Sources: https://www.monash.edu/...". 
+    Use the actual URL from the context Sources.
     -------------------
     ### Context:
     {context}
