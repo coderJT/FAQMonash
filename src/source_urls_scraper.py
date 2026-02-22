@@ -48,6 +48,26 @@ async def scrape_url():
                 cleaned_title = re.sub(r"^\d+\.\s*", "", title)
                 links.append((cleaned_title, a_tag["href"]))
 
+        # Explicitly scrape the GPA landing page for inline links (like the CGPA calculator)
+        gpa_url = next((url for title, url in links if "results/gpa" in url.lower() and "calculator" not in url.lower()), None)
+        if gpa_url:
+            print(f"Fetching inline links from GPA landing page: {gpa_url}")
+            await page.goto(gpa_url)
+            await page.wait_for_timeout(2000)
+            gpa_html = await page.content()
+            gpa_soup = BeautifulSoup(gpa_html, "html.parser")
+            main_content = gpa_soup.find("div", class_="content-inner__main")
+            
+            if main_content:
+                inline_links = main_content.find_all("a")
+                for a in inline_links:
+                    href = a.get("href")
+                    if href and "cgpa-calculator" in href:
+                        links.append(("CGPA Calculator", href))
+                        print(f"Added inline link: CGPA Calculator -> {href}")
+            else:
+                print("Could not find main content on GPA page")
+
         # Save the links to a csv file for ease of compatability 
         os.makedirs("data/bronze", exist_ok=True)
         with open("data/bronze/links.csv", "w", newline='', encoding="utf-8") as f:

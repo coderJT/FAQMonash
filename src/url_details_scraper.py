@@ -43,7 +43,10 @@ async def scrape_page(links, browser, title, url):
     # All pages share the same main content structure as of 24 June 2025
     raw_html = soup.find("div", class_="content-inner__main")
     if not raw_html:
-        print("Error: Main container not found")
+        raw_html = soup.find("div", class_="main-content")
+        
+    if not raw_html:
+        print(f"Error: Main container not found for {url}")
         await page.close()
         return
 
