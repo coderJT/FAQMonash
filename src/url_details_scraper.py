@@ -62,10 +62,10 @@ async def scrape_page(links, browser, title, url):
 
     response = str(raw_html)
 
-    # Finally we write the result to files under page/{title}.txt
+    # Finally we write the result to files under data/bronze/pages/{title}.txt
     # aiofiles is used as we are performing asynchronous tasks and we would not want
     # to block the I/O thread.
-    async with aiofiles.open(f"pages/{title}.txt", "w", encoding="utf-8") as out:
+    async with aiofiles.open(f"data/bronze/pages/{title}.txt", "w", encoding="utf-8") as out:
         await out.write(response)
 
     # Close page and context to prevent resources leakage
@@ -79,12 +79,12 @@ async def scrape_pages():
 
     # Extract all the links
     links = []
-    with open("links.csv", newline='', encoding="utf-8") as f:
+    with open("data/bronze/links.csv", newline='', encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             links.append((row["Title"], row["URL"]))
 
-    os.makedirs("pages", exist_ok=True)
+    os.makedirs("data/bronze/pages", exist_ok=True)
     
     async with Stealth().use_async(async_playwright()) as p:
         browser = await p.chromium.launch()

@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 import csv
+import os
 
 MONASH_STUDENT_ADMIN_URL = 'https://www.monash.edu/students/admin/dates/principal-dates'
 
@@ -48,7 +49,8 @@ async def scrape_url():
                 links.append((cleaned_title, a_tag["href"]))
 
         # Save the links to a csv file for ease of compatability 
-        with open("links.csv", "w", newline='', encoding="utf-8") as f:
+        os.makedirs("data/bronze", exist_ok=True)
+        with open("data/bronze/links.csv", "w", newline='', encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["Title", "URL"])  
             for title, url in links:

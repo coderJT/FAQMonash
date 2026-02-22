@@ -2,7 +2,9 @@ import os
 import faiss
 import json
 import numpy as np
+import pickle
 from sentence_transformers import SentenceTransformer
+from rank_bm25 import BM25Okapi
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -16,9 +18,13 @@ def indexing():
     metadata = []
 
     # Chunking
-    for filename in os.listdir("cleaned"):
+    if not os.path.exists("data/silver/cleaned"):
+        print("No cleaned data found to index.")
+        return
+
+    for filename in os.listdir("data/silver/cleaned"):
         if filename.endswith(".clean.txt"):
-            with open(f"cleaned/{filename}", encoding="utf-8") as f:
+            with open(f"data/silver/cleaned/{filename}", encoding="utf-8") as f:
                 text = f.read()
 
             # Chunking (500 chars per chunk with 100 char overlap)
@@ -35,6 +41,11 @@ def indexing():
 
     print(f"Embedding {len(documents)} chunks...")
 
+    # BM25 Tokenization and Indexing
+    print("Building BM25 Index...")
+    tokenized_corpus = [doc.lower().split() for doc in documents]
+    bm25 = BM25Okapi(tokenized_corpus)
+
     # Normalize the embeddings to use cosine similarity
     embeddings = normalize(model.encode(documents, show_progress_bar=True))
 
@@ -46,9 +57,11 @@ def indexing():
     index.add(np.array(embeddings))
 
     # Save the index and metadata
-    os.makedirs("index", exist_ok=True)
-    faiss.write_index(index, "index/faiss_index")
-    with open("index/chunks_metadata.json", "w") as f:
+    os.makedirs("data/gold/index", exist_ok=True)
+    faiss.write_index(index, "data/gold/index/faiss_index")
+    with open("data/gold/index/chunks_metadata.json", "w") as f:
         json.dump(metadata, f)
+    with open("data/gold/index/bm25_index.pkl", "wb") as f:
+        pickle.dump(bm25, f)
 
-    print("FAISS built successfully.")
+    print("FAISS and BM25 indices built successfully.")

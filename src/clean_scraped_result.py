@@ -55,12 +55,16 @@ def preclean_html(html):
 
 def process_data():
 
-    os.makedirs("cleaned", exist_ok=True)
+    os.makedirs("data/silver/cleaned", exist_ok=True)
+    
+    if not os.path.exists("data/bronze/pages"):
+        print("No pages found to clean.")
+        return
 
-    for filename in os.listdir("pages"):
+    for filename in os.listdir("data/bronze/pages"):
 
         try:
-            with open(f"pages/{filename}", encoding="utf-8") as f:
+            with open(f"data/bronze/pages/{filename}", encoding="utf-8") as f:
                 html = f.read()
             
             # Here will manually clean up the html file to accomodate trafilatura later on
@@ -71,7 +75,7 @@ def process_data():
             
             # Output the file contents
             if text and text.strip():
-                out_path = f"cleaned/{filename.replace('.txt', '.clean.txt')}"
+                out_path = f"data/silver/cleaned/{filename.replace('.txt', '.clean.txt')}"
                 with open(out_path, "w", encoding="utf-8") as out:
                     out.write(text)
             else:
