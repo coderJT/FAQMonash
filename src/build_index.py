@@ -18,26 +18,33 @@ def indexing():
     metadata = []
 
     # Chunking
-    if not os.path.exists("data/silver/cleaned"):
-        print("No cleaned data found to index.")
+    if not os.path.exists("data/silver"):
+        print("No silver data found to index.")
         return
 
-    for filename in os.listdir("data/silver/cleaned"):
-        if filename.endswith(".clean.txt"):
-            with open(f"data/silver/cleaned/{filename}", encoding="utf-8") as f:
-                text = f.read()
+    # Helper to process a directory
+    def process_dir(directory):
+        if not os.path.exists(directory):
+            return
+        for filename in os.listdir(directory):
+            if filename.endswith(".clean.txt"):
+                with open(os.path.join(directory, filename), encoding="utf-8") as f:
+                    text = f.read()
 
-            # Chunking (500 chars per chunk with 100 char overlap)
-            for i in range(0, len(text), 400):
-                chunk = text[i:i + 500]
-                if len(chunk.strip()) < 100:
-                    continue
-                documents.append(chunk)
-                metadata.append({
-                    "source": filename,
-                    "offset": i,
-                    "text": chunk
-                })
+                # Chunking (500 chars per chunk with 100 char overlap)
+                for i in range(0, len(text), 400):
+                    chunk = text[i:i + 500]
+                    if len(chunk.strip()) < 100:
+                        continue
+                    documents.append(chunk)
+                    metadata.append({
+                        "source": filename,
+                        "offset": i,
+                        "text": chunk
+                    })
+
+    process_dir("data/silver/cleaned")
+    process_dir("data/silver/handbook")
 
     print(f"Embedding {len(documents)} chunks...")
 
